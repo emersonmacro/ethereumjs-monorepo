@@ -113,6 +113,11 @@ const args = require('yargs')
       describe: 'Use v4 ("findneighbour" node requests) for peer discovery',
       boolean: true,
     },
+    wit: {
+      describe: 'Use the witness protocol on top of RLPx',
+      boolean: true,
+      default: false,
+    },
   })
   .locale('en_EN').argv
 
@@ -204,6 +209,7 @@ async function run() {
     debugCode: args.debugCode,
     discDns: args.discDns,
     discV4: args.discV4,
+    wit: args.wit,
   })
   logger = config.logger
 

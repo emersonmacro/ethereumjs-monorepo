@@ -341,4 +341,12 @@ export class Chain extends EventEmitter {
     await this.open()
     return this.blockchain.getTotalDifficulty(hash, num)
   }
+
+  /**
+   * Gets the trie node hashes for given block hash
+   */
+  async getWitnessHashes(blockHash: Buffer): Promise<Buffer[]> {
+    await this.open()
+    return this.blockchain.getWitnessHashes(blockHash)
+  }
 }
