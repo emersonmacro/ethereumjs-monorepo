@@ -235,12 +235,19 @@ export class Eth {
     const vm = this._vm.copy()
 
     if (blockOpt !== 'latest') {
-      const latest = await vm.blockchain.getLatestHeader()
-      const number = latest.number.toString(16)
-      if (blockOpt !== `0x${number}`) {
-        return {
-          code: INVALID_PARAMS,
-          message: `Currently only "latest" block supported`,
+      const blockNumber = parseInt(stripHexPrefix(blockOpt))
+      if (!isNaN(blockNumber)) {
+        const blockNumberBN = new BN(stripHexPrefix(blockOpt), 16)
+        const block = await this._chain.getBlock(blockNumberBN)
+        await vm.stateManager.setStateRoot(block.header.stateRoot)
+      } else {
+        const latest = await vm.blockchain.getLatestHeader()
+        const number = latest.number.toString(16)
+        if (blockOpt !== `0x${number}`) {
+          return {
+            code: INVALID_PARAMS,
+            message: `Currently only "latest" block supported`,
+          }
         }
       }
     }
