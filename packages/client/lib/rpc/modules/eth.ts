@@ -17,6 +17,7 @@ import type { EthereumClient } from '../..'
 import type { EthereumService } from '../../service'
 import type { EthProtocol } from '../../net/protocol'
 import type VM from '@ethereumjs/vm'
+import { Block } from '@ethereumjs/block'
 
 /**
  * eth_* RPC module
@@ -235,21 +236,14 @@ export class Eth {
     const vm = this._vm.copy()
 
     if (blockOpt !== 'latest') {
-      const blockNumber = parseInt(stripHexPrefix(blockOpt))
-      if (!isNaN(blockNumber)) {
-        const blockNumberBN = new BN(stripHexPrefix(blockOpt), 16)
-        const block = await this._chain.getBlock(blockNumberBN)
-        await vm.stateManager.setStateRoot(block.header.stateRoot)
-      } else {
-        const latest = await vm.blockchain.getLatestHeader()
-        const number = latest.number.toString(16)
-        if (blockOpt !== `0x${number}`) {
-          return {
-            code: INVALID_PARAMS,
-            message: `Currently only "latest" block supported`,
-          }
+      const { block, invalidBlockParam, message } = await this._getBlock(blockOpt)
+      if (invalidBlockParam) {
+        return {
+          code: INVALID_PARAMS,
+          message,
         }
       }
+      await vm.stateManager.setStateRoot(block.header.stateRoot)
     }
 
     const address = Address.fromString(addressHex)
@@ -410,5 +404,34 @@ export class Eth {
    */
   protocolVersion(_params = []) {
     return `0x${this.ethVersion.toString(16)}`
+  }
+
+  private async _getBlock(blockOpt: string): Promise<{ block: Block | null, invalidBlockParam: boolean, message?: string }> {
+    switch (blockOpt) {
+      case 'earliest':
+        // TODO
+        return
+      case 'pending':
+        return {
+          block: null,
+          invalidBlockParam: true,
+          message: `"pending" block is not currently supported`,
+        }
+      default:
+        const blockNumber = parseInt(stripHexPrefix(blockOpt))
+        if (isNaN(blockNumber)) {
+          return {
+            block: null,
+            invalidBlockParam: true,
+            message: `"pending" block is not currently supported`,
+          }
+        }
+        const blockNumberBN = new BN(stripHexPrefix(blockOpt), 16)
+        const block = await this._chain.getBlock(blockNumberBN)
+        return {
+          block,
+          invalidBlockParam: false,
+        }
+    }
   }
 }
