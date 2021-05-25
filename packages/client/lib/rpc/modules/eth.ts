@@ -236,13 +236,21 @@ export class Eth {
     const vm = this._vm.copy()
 
     if (blockOpt !== 'latest') {
-      const { block, invalidBlockParam, message } = await this._getBlock(blockOpt)
-      if (invalidBlockParam) {
+      if (blockOpt === 'pending') {
         return {
           code: INVALID_PARAMS,
-          message,
+          message: `"pending" block is not currently supported`,
+        }
+      } else if (blockOpt === 'earliest') {
+        // TODO set earliest block
+      } else if (!blockOpt.startsWith('0x')) {
+        return {
+          code: INVALID_PARAMS,
+          message: `Input cannot be parsed as a 0x-prefixed hex number or should be "earliest"|"latest"`,
         }
       }
+      const blockNumberBN = new BN(stripHexPrefix(blockOpt), 16)
+      const block = await this._chain.getBlock(blockNumberBN)
       await vm.stateManager.setStateRoot(block.header.stateRoot)
     }
 
@@ -404,34 +412,5 @@ export class Eth {
    */
   protocolVersion(_params = []) {
     return `0x${this.ethVersion.toString(16)}`
-  }
-
-  private async _getBlock(blockOpt: string): Promise<{ block: Block | null, invalidBlockParam: boolean, message?: string }> {
-    switch (blockOpt) {
-      case 'earliest':
-        // TODO
-        return
-      case 'pending':
-        return {
-          block: null,
-          invalidBlockParam: true,
-          message: `"pending" block is not currently supported`,
-        }
-      default:
-        const blockNumber = parseInt(stripHexPrefix(blockOpt))
-        if (isNaN(blockNumber)) {
-          return {
-            block: null,
-            invalidBlockParam: true,
-            message: `"pending" block is not currently supported`,
-          }
-        }
-        const blockNumberBN = new BN(stripHexPrefix(blockOpt), 16)
-        const block = await this._chain.getBlock(blockNumberBN)
-        return {
-          block,
-          invalidBlockParam: false,
-        }
-    }
   }
 }
